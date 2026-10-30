@@ -1,0 +1,18 @@
+CHRISTMAS QUEST — DÉMARRAGE SUR WINDOWS
+
+1. Installe Node.js (version LTS) depuis https://nodejs.org/ si ce n'est pas déjà fait.
+2. Décompresse l'archive, puis ouvre le dossier christmas-quest.
+3. Dans ce dossier, fais un clic droit et ouvre un terminal.
+4. Tape ces commandes, une par une :
+
+   npm install
+   npm run dev
+
+5. Dans ton navigateur, ouvre l'adresse indiquée par le terminal, généralement http://localhost:5173/.
+6. Garde le terminal ouvert pendant que tu joues. Pour arrêter le jeu : Ctrl+C.
+
+La configuration Web Firebase et le fichier firestore.rules sont inclus.
+Les règles doivent être publiées dans la console Firebase pour synchroniser les clés.
+Les règles et la synchronisation n'ont pas encore été vérifiées sur le projet Firebase réel.
+Les réservations restent locales pour le moment. Les clés du mode démo ne sont pas importées automatiquement.
+Le dossier node_modules sera créé par npm install avec les dépendances adaptées à Windows.
