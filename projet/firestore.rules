@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function loggedIn() {
+      return request.auth != null;
+    }
+    function validKey(k) {
+      return k is map
+        && k.keys().hasAll(['acquired', 'deposited', 'ownerUid'])
+        && k.keys().hasOnly(['acquired', 'deposited', 'ownerUid'])
+        && k.acquired is bool && k.deposited is bool
+        && (!k.deposited || k.acquired)
+        && ((k.acquired && k.ownerUid is string)
+            || (!k.acquired && k.ownerUid == null));
+    }
+    function validProgress(d) {
+      return d.keys().hasAll(['keys', 'chestOpened'])
+        && d.keys().hasOnly(['keys', 'chestOpened', 'mysterySolved'])
+        && d['keys'] is map
+        && d['keys'].keys().hasAll(['rose', 'bleue', 'doree', 'violette'])
+        && d['keys'].keys().hasOnly(['rose', 'bleue', 'doree', 'violette'])
+        && validKey(d['keys'].rose) && validKey(d['keys'].bleue)
+        && validKey(d['keys'].doree) && validKey(d['keys'].violette)
+        && d.chestOpened is bool && d.get('mysterySolved', false) is bool
+        && d.chestOpened == (d['keys'].rose.deposited && d['keys'].bleue.deposited
+          && d['keys'].doree.deposited && d['keys'].violette.deposited)
+        && (!d.get('mysterySolved', false) || d.chestOpened);
+    }
+    function initialKey(k) {
+      return !k.deposited && (!k.acquired || k.ownerUid == request.auth.uid);
+    }
+    function validChange(before, after) {
+      return (!before.acquired || after.acquired)
+        && (!before.deposited || after.deposited)
+        && (before.acquired ? after.ownerUid == before.ownerUid
+          : (!after.acquired || after.ownerUid == request.auth.uid))
+        && (!after.deposited || before.acquired);
+    }
+    match /families/famille-noel/state/progress {
+      allow read: if loggedIn();
+      allow create: if loggedIn() && validProgress(request.resource.data)
+        && initialKey(request.resource.data['keys'].rose)
+        && initialKey(request.resource.data['keys'].bleue)
+        && initialKey(request.resource.data['keys'].doree)
+        && initialKey(request.resource.data['keys'].violette)
+        && !request.resource.data.get('mysterySolved', false);
+      allow update: if loggedIn() && validProgress(request.resource.data)
+        && validChange(resource.data['keys'].rose, request.resource.data['keys'].rose)
+        && validChange(resource.data['keys'].bleue, request.resource.data['keys'].bleue)
+        && validChange(resource.data['keys'].doree, request.resource.data['keys'].doree)
+        && validChange(resource.data['keys'].violette, request.resource.data['keys'].violette)
+        && (!resource.data.get('mysterySolved', false)
+          || request.resource.data.get('mysterySolved', false));
+      allow delete: if false;
+    }
+  }
+}
