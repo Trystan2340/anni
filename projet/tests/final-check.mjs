@@ -1,0 +1,64 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+const errors = [];
+p.on('pageerror', e => errors.push(e.message));
+await p.goto('http://localhost:5173/', { waitUntil: 'networkidle' });
+await p.evaluate(() => {
+  const s = window.__cq.server;
+  s.resetDemo(); s.setDemoClock(0); s.setSimulatedReveal(false);
+  s.signIn('trystan@famille-noel.fr', 'noel2026');
+  ['rose','bleue','doree','violette'].forEach(k => s.adminSetKey('u-maman', k, true, true));
+  s.signOut();
+});
+await p.reload({ waitUntil: 'networkidle' });
+await p.screenshot({ path: 'shots/50-login.png' });
+await p.getByRole('button', { name: /Maman/ }).first().click();
+await p.locator('input[type=password]').fill('noel2026');
+await p.locator('input[type=checkbox]').check();
+await p.getByRole('button', { name: /Entrer dans le village/ }).click();
+await p.waitForTimeout(2500);
+await p.screenshot({ path: 'shots/51-village.png' });
+// cinématique
+await p.evaluate(() => {
+  const s = window.__cq.server;
+  s.signIn('trystan@famille-noel.fr', 'noel2026');
+  ['rose','bleue','doree','violette'].forEach(k => s.adminSetKey('u-juju', k, false, false));
+  s.signIn('maman@famille-noel.fr', 'noel2026');
+});
+await p.evaluate(() => window.__cq.server.depositKey('u-maman', 'rose'));
+await p.waitForTimeout(300);
+await p.evaluate(() => { window.__cq.server.depositKey('u-maman', 'bleue'); window.__cq.server.depositKey('u-maman', 'doree'); });
+await p.waitForTimeout(300);
+await p.evaluate(() => window.__cq.server.depositKey('u-maman', 'violette'));
+// forcer l'ouverture de la modale de mission via l'UI : clic sur le coffre
+await p.evaluate(() => window.__cq.bus.emit('chest:interact', undefined));
+await p.waitForTimeout(600);
+await p.screenshot({ path: 'shots/52-coffre-ouvert.png' });
+await p.evaluate(() => window.__cq.bus.emit('minigame:quit', { gameId: 'none' }));
+await p.getByRole('button', { name: /Ouvrir les listes/ }).click();
+await p.waitForTimeout(1000);
+await p.screenshot({ path: 'shots/53-listes.png' });
+// mini-jeu : capture pendant une cascade
+await p.getByRole('button', { name: /Retour au village/ }).click();
+await p.waitForTimeout(1200);
+await p.evaluate(() => window.__cq.openMinigame('chacha'));
+await p.waitForTimeout(900);
+await p.keyboard.press('Enter');
+await p.waitForTimeout(3500);
+await p.keyboard.press('ArrowLeft');
+await p.waitForTimeout(300);
+await p.keyboard.press('ArrowUp');
+await p.waitForTimeout(500);
+await p.screenshot({ path: 'shots/54-runner.png' });
+await p.evaluate(() => window.__cq.bus.emit('minigame:quit', { gameId: 'chacha-runner' }));
+await p.waitForTimeout(400);
+await p.evaluate(() => window.__cq.openMinigame('papa'));
+await p.waitForTimeout(800);
+await p.keyboard.press('Enter');
+await p.waitForTimeout(1500);
+await p.keyboard.press('ArrowUp');
+await p.waitForTimeout(600);
+await p.screenshot({ path: 'shots/55-tron.png' });
+console.log('ERREURS:', errors.length ? errors : 'aucune');
+await b.close();
